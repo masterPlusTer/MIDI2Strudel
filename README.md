@@ -80,6 +80,12 @@ A single MIDI track can contain several independent musical voices.
 
 Simply exporting notes in chronological order often destroys the musical structure.
 
+Many MIDI files contain multiple musical voices, even inside a single MIDI track.
+
+Simply splitting the file into tracks is often not enough, since one track may still contain overlapping independent voices.
+
+Finding a representation that maps naturally to Strudel remains one of the main challenges of this project.
+
 Current research:
 
 - automatic voice separation
