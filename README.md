@@ -16,7 +16,6 @@ Current capabilities include:
 
 - Reading Standard MIDI Files (.mid)
 - Matching Note On / Note Off events
-- Tempo map support
 - Quantization
 - Exporting Strudel code
 - Saving generated files to the `output/` directory
@@ -181,6 +180,7 @@ Possible future improvements include:
 - Phrase detection
 - Motif recognition
 - Improved pattern generation
+- Full tempo map support
 - Cleaner Strudel syntax
 - Live MIDI capture
 - Better handling of tempo changes
