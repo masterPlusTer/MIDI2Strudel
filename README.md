@@ -1,6 +1,6 @@
 # MIDI2Strudel
 
-⚠ This project is an experiment. The focus is on generating readable and editable Strudel code rather than perfectly reproducing MIDI playback.
+⚠ **This project is experimental.** The goal is to generate readable and editable Strudel code rather than perfectly reproduce MIDI playback.
 
 > An experimental Python project for converting MIDI files into editable Strudel code.
 
@@ -8,7 +8,7 @@ Unlike a traditional MIDI player, the goal of this project is **not** to reprodu
 
 The objective is to generate **human-readable Strudel code** that musicians can understand, edit, remix and learn from.
 
-The project is still experimental and many interesting problems remain unsolved.
+The project is still experimental, and many interesting problems remain unsolved.
 
 ---
 
@@ -18,8 +18,10 @@ Current capabilities include:
 
 - Reading Standard MIDI Files (.mid)
 - Matching Note On / Note Off events
-- Quantization
-- Exporting Strudel code
+- Automatic quantization
+- Basic monophonic voice separation
+- Bar-based Strudel generation
+- Exporting editable Strudel code
 - Saving generated files to the `output/` directory
 
 ---
@@ -33,6 +35,33 @@ Install the dependencies:
 ```bash
 pip install -r requirements.txt
 ```
+
+---
+
+# Recommended Workflow
+
+The current version works **best with individual MIDI tracks** rather than complete multi-track arrangements.
+
+For orchestral pieces or complex MIDI files, the recommended workflow is:
+
+```
+Original MIDI
+        │
+        ▼
+Split into individual instrument tracks
+        │
+        ▼
+Convert each track separately
+        │
+        ▼
+Combine the generated Strudel patterns manually
+```
+
+Most MIDI editors (MuseScore, Reaper, Logic, Cubase, etc.) can export individual tracks as separate MIDI files.
+
+Although the converter can process complete MIDI files, the generated output quickly becomes difficult to read because automatic reconstruction of multiple independent musical voices is still an open problem.
+
+Working with individual tracks produces significantly cleaner and more editable Strudel code.
 
 ---
 
@@ -54,19 +83,13 @@ output/
 
 # Project Goals
 
-This project is exploring how to convert MIDI into code that feels natural inside Strudel.
+This project explores how to convert MIDI into Strudel code that feels natural to read and edit.
 
 The emphasis is on readability and editability rather than perfect playback accuracy.
 
-Example goal:
+For example, instead of generating a single enormous sequence of note events, the converter now generates **bar-based Strudel patterns**, making the output much easier to understand and modify.
 
-Instead of generating something like:
-
-```javascript
-note("60 64 67 72 74 76 79")
-```
-
-the long-term goal is to generate patterns that preserve the musical structure and can easily be modified.
+Long-term goals include recognizing musical structure rather than simply translating MIDI events.
 
 ---
 
@@ -76,18 +99,21 @@ Converting MIDI into editable Strudel code is much harder than simply replaying 
 
 Several interesting problems have appeared during development.
 
+---
+
 ## Polyphony
 
-One of the biggest discoveries during this project was that simply splitting a MIDI file into separate tracks is often **not enough**.
+Splitting a MIDI file into separate tracks is usually the best starting point.
 
-Individual MIDI tracks can still contain multiple overlapping musical voices. While this is perfectly valid for playback, it becomes a major challenge when the goal is to generate clean, editable Strudel code.
+However, individual MIDI tracks can still contain multiple overlapping musical voices. While this is perfectly valid for playback, it becomes a major challenge when the goal is to generate clean, editable Strudel code.
 
 Finding a good voice separation strategy remains one of the central problems this project is trying to solve.
 
-Current challenges:
+Current challenges include:
 
 - automatic voice separation
 - preserving overlapping notes
+- assigning notes to musically coherent voices
 
 ---
 
@@ -95,7 +121,7 @@ Current challenges:
 
 The highest note is not necessarily the melody.
 
-A convincing melody extractor probably needs to recognize musical phrases instead of selecting notes by pitch alone.
+A convincing melody extractor probably needs to recognize musical phrases instead of selecting notes purely by pitch.
 
 Current status:
 
@@ -123,11 +149,11 @@ Representing them naturally inside Strudel is much harder.
 
 ## Human-readable Output
 
-This project intentionally prefers readable code over raw data.
+This project intentionally prefers readable code over raw MIDI data.
 
-The goal is not merely to convert MIDI into something executable.
+The objective is not merely to generate executable Strudel.
 
-The generated Strudel should still be understandable by a human.
+The generated code should remain understandable, editable and educational for human musicians.
 
 ---
 
@@ -172,6 +198,17 @@ Some assumptions that turned out to be wrong:
 - Duration and note onset are different concepts.
 - Quantization alone does not create readable music.
 - A faithful MIDI conversion is not necessarily a good Strudel conversion.
+- Generating one enormous Strudel pattern is far less useful than generating structured musical sections.
+
+---
+
+# Current Limitations
+
+The converter currently assumes that **one input file represents one musical part**.
+
+It is **not yet intended** to reconstruct complete orchestral scores automatically.
+
+Complex MIDI files containing many instruments and overlapping voices usually produce cluttered output. This is expected and is one of the primary research problems the project aims to address.
 
 ---
 
@@ -183,6 +220,8 @@ Possible future improvements include:
 - Chord detection
 - Phrase detection
 - Motif recognition
+- Pattern simplification
+- Repeated pattern detection
 - Improved pattern generation
 - Full tempo map support
 - Cleaner Strudel syntax
@@ -194,13 +233,13 @@ Possible future improvements include:
 
 # What this project is NOT
 
-This is **not** intended to become a perfect MIDI player.
+This project is **not** intended to become a perfect MIDI player.
 
 There are already excellent MIDI players available.
 
-The purpose of this project is different:
+The purpose here is different:
 
-Generate Strudel code that preserves as much musical information as possible while remaining readable and editable by humans.
+Generate Strudel code that preserves as much musical information as possible while remaining readable, editable and useful for musicians.
 
 ---
 
@@ -212,7 +251,7 @@ If you have experience with MIDI, music theory, Strudel, TidalCycles or algorith
 
 ---
 
-## Looking for Feedback
+# Looking for Feedback
 
 I'm especially interested in ideas about:
 
@@ -221,6 +260,9 @@ I'm especially interested in ideas about:
 - Better Strudel representations
 - Music theory approaches
 - Pattern simplification
+- Musical structure detection
+
+---
 
 # License
 
