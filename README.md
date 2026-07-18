@@ -78,15 +78,11 @@ Several interesting problems have appeared during development.
 
 A single MIDI track can contain several independent musical voices.
 
-Simply exporting notes in chronological order often destroys the musical structure.
+One of the biggest discoveries during this project was that simply separating a MIDI file into its individual tracks is often **not enough**. Many tracks still contain overlapping musical lines that need to be separated before they can be represented naturally in Strudel.
 
-Many MIDI files contain multiple musical voices, even inside a single MIDI track.
+Finding a good voice separation algorithm remains one of the main challenges of this project.
 
-Simply splitting the file into tracks is often not enough, since one track may still contain overlapping independent voices.
-
-Finding a representation that maps naturally to Strudel remains one of the main challenges of this project.
-
-Current research:
+Current challenges:
 
 - automatic voice separation
 - preserving overlapping notes
