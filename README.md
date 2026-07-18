@@ -1,5 +1,7 @@
 # MIDI2Strudel
 
+⚠ This project is an experiment. The focus is on generating readable and editable Strudel code rather than perfectly reproducing MIDI playback.
+
 > An experimental Python project for converting MIDI files into editable Strudel code.
 
 Unlike a traditional MIDI player, the goal of this project is **not** to reproduce MIDI as faithfully as possible.
@@ -78,9 +80,9 @@ Several interesting problems have appeared during development.
 
 A single MIDI track can contain several independent musical voices.
 
-One of the biggest discoveries during this project was that simply separating a MIDI file into its individual tracks is often **not enough**. Many tracks still contain overlapping musical lines that need to be separated before they can be represented naturally in Strudel.
+One of the biggest discoveries during this project was that simply splitting a MIDI file into separate tracks is often **not enough**. Individual tracks may still contain overlapping musical lines that cannot be represented naturally as a single Strudel pattern.
 
-Finding a good voice separation algorithm remains one of the main challenges of this project.
+Finding a good voice separation strategy remains one of the main challenges of this project.
 
 Current challenges:
 
@@ -209,6 +211,16 @@ Ideas, bug reports, discussions and pull requests are very welcome.
 If you have experience with MIDI, music theory, Strudel, TidalCycles or algorithmic composition, your feedback would be greatly appreciated.
 
 ---
+
+## Looking for Feedback
+
+I'm especially interested in ideas about:
+
+- Voice separation
+- Melody extraction
+- Better Strudel representations
+- Music theory approaches
+- Pattern simplification
 
 # License
 
