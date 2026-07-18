@@ -78,11 +78,11 @@ Several interesting problems have appeared during development.
 
 ## Polyphony
 
-A single MIDI track can contain several independent musical voices.
+One of the biggest discoveries during this project was that simply splitting a MIDI file into separate tracks is often **not enough**.
 
-One of the biggest discoveries during this project was that simply splitting a MIDI file into separate tracks is often **not enough**. Individual tracks may still contain overlapping musical lines that cannot be represented naturally as a single Strudel pattern.
+Individual MIDI tracks can still contain multiple overlapping musical voices. While this is perfectly valid for playback, it becomes a major challenge when the goal is to generate clean, editable Strudel code.
 
-Finding a good voice separation strategy remains one of the main challenges of this project.
+Finding a good voice separation strategy remains one of the central problems this project is trying to solve.
 
 Current challenges:
 
