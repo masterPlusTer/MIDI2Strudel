@@ -1,3 +1,7 @@
+
+
+https://github.com/user-attachments/assets/5f0df709-7345-4515-ac39-da6058fff849
+
 # MIDI2Strudel
 
 ⚠ **This project is experimental.** The goal is to generate readable and editable Strudel code rather than perfectly reproduce MIDI playback.
