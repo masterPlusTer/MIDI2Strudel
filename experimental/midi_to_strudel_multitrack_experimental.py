@@ -74,13 +74,13 @@ def find_midi_file() -> Path:
     if len(sys.argv) > 1:
         path = Path(sys.argv[1]).expanduser().resolve()
         if not path.exists():
-            raise SystemExit(f"No se encontró el archivo: {path}")
+            raise SystemExit(f"File not found: {path}")
         return path
 
     folder = Path(__file__).resolve().parent
     files = sorted([*folder.glob("*.mid"), *folder.glob("*.midi")])
     if not files:
-        raise SystemExit("No encontré ningún archivo .mid o .midi.")
+        raise SystemExit("No .mid or .midi file was found.")
     return files[0]
 
 
@@ -172,7 +172,7 @@ def extract_notes(mid: mido.MidiFile, track_index: int) -> list[NoteEvent]:
 
 def steps_per_beat() -> int:
     if QUANTIZATION % 4:
-        raise SystemExit("QUANTIZATION debe ser divisible por 4.")
+        raise SystemExit("QUANTIZATION must be divisible by 4.")
     return QUANTIZATION // 4
 
 
@@ -468,7 +468,7 @@ def render_combined(
     ]
 
     if not original_notes:
-        raise ValueError("No hay notas para combinar.")
+        raise ValueError("There are no notes to combine.")
 
     global_start = min(note.start for note in original_notes)
 
@@ -602,7 +602,7 @@ def main() -> None:
     tracks = convert_tracks(mid)
 
     if not tracks:
-        raise SystemExit("El MIDI no contiene pistas con notas.")
+        raise SystemExit("The MIDI file contains no tracks with notes.")
 
     output_dir = (
         Path(__file__).resolve().parent
@@ -634,14 +634,14 @@ def main() -> None:
     )
 
     print(f"MIDI: {midi_path.name}")
-    print(f"BPM usado: {bpm:.2f}")
-    print(f"Compás: {numerator}/{denominator}")
-    print(f"Pistas con notas: {len(tracks)}")
-    print(f"Patrones combinados: {total_patterns}")
-    print(f"Salida: {output_dir}")
+    print(f"BPM used: {bpm:.2f}")
+    print(f"Time signature: {numerator}/{denominator}")
+    print(f"Tracks with notes: {len(tracks)}")
+    print(f"Combined patterns: {total_patterns}")
+    print(f"Output: {output_dir}")
     if has_tempo_changes(mid):
-        print("ADVERTENCIA: el MIDI contiene cambios de tempo.")
-        print("El archivo Strudel usa el tempo activo al comenzar la primera nota.")
+        print("WARNING: The MIDI file contains tempo changes.")
+        print("The Strudel file uses the tempo active when the first note begins.")
 
 
 if __name__ == "__main__":
