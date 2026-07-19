@@ -1,6 +1,4 @@
 
-
-
 # MIDI2Strudel
 
 ⚠ **This project is experimental.** The goal is to generate readable and editable Strudel code rather than perfectly reproduce MIDI playback.
@@ -269,6 +267,9 @@ Features:
 ---
 
 ### Expressive multi-track converter
+
+https://github.com/user-attachments/assets/d122915e-4c37-4c1e-a2bd-dd946bcbe2f4
+
 
 ```bash
 python midi_to_strudel_multitrack_expressive.py song.mid
