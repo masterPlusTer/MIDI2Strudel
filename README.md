@@ -243,91 +243,48 @@ Generate Strudel code that preserves as much musical information as possible whi
 
 ---
 
-## Experimental Multi-track Converter
+## Experimental converters
 
-The repository also includes an experimental multi-track converter:
+The repository also includes experimental converters exploring different approaches to MIDI translation.
+
+### Multi-track converter
 
 ```bash
 python midi_to_strudel_multitrack_experimental.py song.mid
 ```
 
-This version processes a complete MIDI file automatically.
+This prototype automatically processes an entire MIDI file.
 
-It generates:
+Features:
 
-* One Strudel file for each MIDI track containing notes
-* A combined Strudel file containing the complete arrangement
+- Automatic track detection
+- One Strudel file per MIDI track
+- Automatic synchronized combined arrangement
+- Voice limiting for browser stability
+- Stable playback prioritized over MIDI fidelity
 
-Example output:
+---
 
-```text
-output/
-└── song/
-    ├── song_track_01.strudel
-    ├── song_track_02.strudel
-    ├── song_track_09.strudel
-    └── song_combined.strudel
-```
-
-The combined arrangement preserves the relative timing between tracks.
-
-### Important limitation
-
-This converter prioritizes stable playback over exact MIDI fidelity.
-
-Complex MIDI arrangements may generate a very large number of simultaneous voices. This can overload Strudel or the browser's WebAudio engine, causing distortion or audio playback to stop.
-
-To reduce this problem, the experimental converter:
-
-* Limits the number of voices generated for each track
-* Shortens sample tails
-* Reduces the gain of the combined arrangement
-* Handles percussion tracks separately
-* Removes global leading silence while preserving track synchronization
-
-As a result, the combined output may sound less faithful to the original MIDI.
-
-For more accurate and editable results, converting individual tracks separately with the main converter is still recommended.
-
-
-## Experimental expressive multi-track converter
-
-The repository also includes an experimental expressive converter:
+### Expressive multi-track converter
 
 ```bash
 python midi_to_strudel_multitrack_expressive.py song.mid
 ```
 
-Like the experimental multi-track converter, this version automatically processes an entire MIDI file, exports one Strudel file for each musical track, and generates a synchronized combined arrangement.
+This prototype builds upon the multi-track converter and attempts to preserve more of the original MIDI performance.
 
-In addition, it attempts to preserve more of the original MIDI performance by translating expressive information into Strudel patterns.
+Additional expressive features include:
 
-Current features:
-
-- Automatic track detection
-- One Strudel file per MIDI track
-- Automatic combined arrangement
 - Velocity preservation
-- Sustain pedal support (CC64)
+- Sustain pedal (CC64)
 - Channel volume (CC7)
 - Expression (CC11)
 - Pan (CC10)
 - Higher timing resolution (1/32)
-- Voice limiting for browser stability
 
-### Design goals
+The goal of this version is to investigate how expressive MIDI performances can be translated into Strudel while still producing editable code.
 
-Unlike the standard converter, this prototype focuses on preserving musical expression rather than producing the cleanest possible Strudel code.
-
-The generated output is intentionally more complex in exchange for a performance that better resembles the original MIDI.
-
-### Limitations
-
-This is still an experimental research prototype.
-
-Some expressive MIDI events cannot yet be represented perfectly in Strudel, and dense arrangements may still lose detail because voice limiting is applied to keep playback stable inside the browser.
-
-
+Because Strudel is not a MIDI player and browser polyphony is limited, this converter may simplify dense passages to maintain stable playback.
 
 # Contributions
 
