@@ -4,6 +4,10 @@ This folder contains research prototypes.
 
 ## Multi-track converter
 
+
+https://github.com/user-attachments/assets/e7b7651d-636a-4c04-b477-207418e72198
+
+
 ```bash
 python midi_to_strudel_multitrack_experimental.py song.mid
 ```
