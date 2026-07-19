@@ -5,7 +5,6 @@
 
 
 
-https://github.com/user-attachments/assets/f656937c-4fb9-4da1-ba32-a1b591579db7
 
 
 
@@ -258,7 +257,6 @@ The repository also includes experimental converters exploring different approac
 
 
 
-https://github.com/user-attachments/assets/e7b7651d-636a-4c04-b477-207418e72198
 
 
 
@@ -280,7 +278,6 @@ Features:
 
 ### Expressive multi-track converter
 
-https://github.com/user-attachments/assets/d122915e-4c37-4c1e-a2bd-dd946bcbe2f4
 
 
 ```bash
