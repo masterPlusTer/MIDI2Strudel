@@ -74,7 +74,7 @@ Working with individual tracks produces significantly cleaner and more editable 
 
 # Usage
 
-Place one or more MIDI files in the project folder and simply run:
+Place one or more MIDI track files in the project folder and simply run:
 
 ```bash
 python midi_to_strudel.py
