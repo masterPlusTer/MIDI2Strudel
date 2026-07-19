@@ -1,23 +1,27 @@
-"""Simple experimental MIDI to Strudel converter.
+"""MIDI-to-Strudel converter with numbered output filenames.
 
 Usage:
     python midi_to_strudel.py
-    python midi_to_strudel.py song.mid
+    python midi_to_strudel.py violin.mid cello.mid
+    python midi_to_strudel.py path/to/midi_folder
 
-When no MIDI file is given, the script uses the first .mid or .midi file found
-next to this script.
+When no arguments are supplied, every .mid and .midi file found next to this
+script is processed.
 
-The generated Strudel code is written to output/.
+Each input MIDI file is converted independently and written to its own
+.strudel file inside output/.
 
 Important limitations:
-- Only one MIDI track is converted at a time.
-- The first tempo and first time signature are used.
+- One note-containing internal track is converted from each MIDI file.
+- By default, the internal track with the most note_on events is selected.
+- The first tempo and first time signature found in each MIDI are used.
 - Notes crossing a bar boundary are retriggered in the following bar.
 """
 
 from __future__ import annotations
 
 import sys
+import re
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from pathlib import Path
@@ -37,12 +41,13 @@ QUANTIZATION = 16
 
 SYNTH = "piano"
 
-TRACK = None
-# None = choose the MIDI track with the most note_on events.
-# Set an integer such as 1 or 9 to force a particular internal MIDI track.
+TRACK: int | None = None
+# None = choose the internal MIDI track with the most note_on events
+# inside each input MIDI file.
+# Set an integer such as 1 or 2 to force that internal track in every file.
 
 NORMALIZE_START = True
-# When converting an isolated track, remove silence before its first note.
+# Remove silence before the first note in each exported MIDI file.
 
 NOTE_NAMES = [
     "c",
@@ -58,6 +63,50 @@ NOTE_NAMES = [
     "a#",
     "b",
 ]
+
+
+WINDOWS_RESERVED_NAMES = {
+    "con",
+    "prn",
+    "aux",
+    "nul",
+    *(f"com{number}" for number in range(1, 10)),
+    *(f"lpt{number}" for number in range(1, 10)),
+}
+
+
+def safe_output_stem(value: str) -> str:
+    """Return a portable filename stem for Windows, macOS, and Linux."""
+
+    # Replace characters forbidden by Windows and characters that commonly
+    # cause trouble in shells, URLs, editors, and generated links.
+    value = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", value)
+
+    # Keep letters, numbers, spaces, dots, underscores, hyphens, and Unicode
+    # letters, while replacing punctuation such as #, %, &, quotes, and brackets.
+    value = "".join(
+        character
+        if character.isalnum() or character in {" ", ".", "_", "-"}
+        else "_"
+        for character in value
+    )
+
+    # Collapse repeated whitespace and underscores.
+    value = re.sub(r"\s+", " ", value)
+    value = re.sub(r"_+", "_", value)
+
+    # Windows does not allow filenames ending in a dot or space.
+    value = value.strip(" ._")
+
+    if not value:
+        value = "midi_output"
+
+    # Windows reserves these names even when an extension is present.
+    if value.casefold() in WINDOWS_RESERVED_NAMES:
+        value = f"{value}_file"
+
+    # Leave room for the .strudel extension and long parent paths.
+    return value[:120].rstrip(" ._") or "midi_output"
 
 
 # ---------------------------------------------------------------------------
@@ -77,40 +126,59 @@ class NoteEvent:
 
 
 # ---------------------------------------------------------------------------
-# MIDI loading
+# Input discovery
 # ---------------------------------------------------------------------------
 
-def find_midi_file() -> Path:
-    if len(sys.argv) > 1:
-        path = Path(sys.argv[1]).expanduser()
+def midi_files_in_folder(folder: Path) -> list[Path]:
+    files = list(folder.glob("*.mid")) + list(folder.glob("*.midi"))
+    return sorted(path.resolve() for path in files if path.is_file())
+
+
+def find_midi_files() -> list[Path]:
+    if len(sys.argv) == 1:
+        folder = Path(__file__).resolve().parent
+        files = midi_files_in_folder(folder)
+
+        if not files:
+            raise SystemExit(
+                "No .mid or .midi files were found next to this script."
+            )
+
+        return files
+
+    found: list[Path] = []
+
+    for argument in sys.argv[1:]:
+        path = Path(argument).expanduser()
 
         if not path.is_absolute():
             path = Path.cwd() / path
 
+        path = path.resolve()
+
         if not path.exists():
-            raise SystemExit(f"No se encontró el archivo: {path}")
+            raise SystemExit(f"File or folder not found: {path}")
+
+        if path.is_dir():
+            found.extend(midi_files_in_folder(path))
+            continue
 
         if path.suffix.lower() not in {".mid", ".midi"}:
-            raise SystemExit(f"El archivo no parece ser MIDI: {path}")
+            raise SystemExit(f"The file does not appear to be MIDI: {path}")
 
-        return path
+        found.append(path)
 
-    folder = Path(__file__).resolve().parent
+    unique_files = list(dict.fromkeys(found))
 
-    files = sorted(
-        list(folder.glob("*.mid"))
-        + list(folder.glob("*.midi"))
-    )
+    if not unique_files:
+        raise SystemExit("No MIDI files were found.")
 
-    if not files:
-        raise SystemExit(
-            "No encontré ningún archivo .mid o .midi junto a "
-            "midi_to_strudel.py.\n"
-            "Copia un MIDI en esta carpeta y vuelve a ejecutar el script."
-        )
+    return unique_files
 
-    return files[0]
 
+# ---------------------------------------------------------------------------
+# MIDI information
+# ---------------------------------------------------------------------------
 
 def count_notes(track: mido.MidiTrack) -> int:
     return sum(
@@ -120,12 +188,25 @@ def count_notes(track: mido.MidiTrack) -> int:
     )
 
 
+def track_name(track: mido.MidiTrack) -> str:
+    for msg in track:
+        if msg.type == "track_name" and msg.name.strip():
+            return msg.name.strip()
+
+    return ""
+
+
 def choose_track(mid: mido.MidiFile) -> int:
     if TRACK is not None:
         if not 0 <= TRACK < len(mid.tracks):
-            raise SystemExit(
-                f"TRACK={TRACK} no existe. "
-                f"El MIDI tiene {len(mid.tracks)} pistas internas."
+            raise ValueError(
+                f"TRACK={TRACK} does not exist. "
+                f"This MIDI contains {len(mid.tracks)} internal tracks."
+            )
+
+        if count_notes(mid.tracks[TRACK]) == 0:
+            raise ValueError(
+                f"Internal track {TRACK} does not contain usable notes."
             )
 
         return TRACK
@@ -133,7 +214,7 @@ def choose_track(mid: mido.MidiFile) -> int:
     counts = [count_notes(track) for track in mid.tracks]
 
     if not counts or max(counts) == 0:
-        raise SystemExit("El MIDI no contiene notas utilizables.")
+        raise ValueError("The MIDI does not contain usable notes.")
 
     return max(range(len(counts)), key=counts.__getitem__)
 
@@ -229,8 +310,7 @@ def steps_per_beat() -> int:
 
     if not value.is_integer():
         raise SystemExit(
-            "QUANTIZATION debe ser divisible por 4. "
-            "Usa 8, 16 o 32."
+            "QUANTIZATION must be divisible by 4. Use 8, 16, or 32."
         )
 
     return int(value)
@@ -244,8 +324,6 @@ def quantize(notes: list[NoteEvent]) -> list[NoteEvent]:
         start_step = round(event.start * grid)
         end_step = round(event.end * grid)
 
-        # Quantize the start and end separately. Quantizing only the duration
-        # can gradually introduce timing errors.
         end_step = max(start_step + 1, end_step)
 
         result.append(
@@ -294,14 +372,7 @@ def normalize_start(notes: list[NoteEvent]) -> list[NoteEvent]:
 def separate_voices(
     notes: list[NoteEvent],
 ) -> list[list[NoteEvent]]:
-    """Split overlapping notes into monophonic voices.
-
-    This is still a heuristic, not genuine musical voice analysis.
-
-    When multiple voices are available, the note is assigned to the voice
-    whose previous pitch is closest. This produces more coherent melodic
-    lines than simply choosing the first available voice.
-    """
+    """Split overlapping notes into monophonic voices."""
 
     voices: list[list[NoteEvent]] = []
     voice_ends: list[float] = []
@@ -369,7 +440,6 @@ def add_rest(
     if length <= 0:
         return
 
-    # Adjacent rests can safely be combined.
     if segments and segments[-1][0] == "~":
         previous_symbol, previous_length = segments[-1]
         segments[-1] = (
@@ -417,8 +487,6 @@ def render_bar(
         if end_step <= start_step:
             continue
 
-        # A voice should be monophonic, but protect against tiny rounding
-        # overlaps introduced by quantization.
         start_step = max(start_step, cursor)
 
         if end_step <= start_step:
@@ -427,14 +495,7 @@ def render_bar(
         add_rest(segments, start_step - cursor)
 
         duration_steps = end_step - start_step
-
-        segments.append(
-            (
-                note_name(event.note),
-                duration_steps,
-            )
-        )
-
+        segments.append((note_name(event.note), duration_steps))
         cursor = end_step
 
     add_rest(segments, bar_steps - cursor)
@@ -442,8 +503,6 @@ def render_bar(
     if not segments:
         return "~"
 
-    # If one event occupies the entire bar, its weight is unnecessary.
-    # note("c3") and note("~") already occupy one complete cycle.
     if (
         len(segments) == 1
         and segments[0][1] == bar_steps
@@ -494,20 +553,15 @@ def render_strudel(
     voices: list[list[NoteEvent]],
     bpm: float,
     source: Path,
-    track: int,
+    track_index: int,
+    selected_track_name: str,
     numerator: int,
     denominator: int,
 ) -> str:
-    nonempty_voices = [
-        voice
-        for voice in voices
-        if voice
-    ]
+    nonempty_voices = [voice for voice in voices if voice]
 
     if not nonempty_voices:
-        raise SystemExit(
-            "No se pudo generar ningún patrón."
-        )
+        raise ValueError("No pattern could be generated.")
 
     bar_length_beats = numerator * (4 / denominator)
 
@@ -519,12 +573,7 @@ def render_strudel(
 
     total_bars = max(
         1,
-        int(
-            -(
-                final_time
-                // -bar_length_beats
-            )
-        ),
+        int(-(final_time // -bar_length_beats)),
     )
 
     voice_definitions = [
@@ -534,10 +583,7 @@ def render_strudel(
             bar_length_beats=bar_length_beats,
             voice_number=index,
         )
-        for index, voice in enumerate(
-            nonempty_voices,
-            start=1,
-        )
+        for index, voice in enumerate(nonempty_voices, start=1)
     ]
 
     if len(nonempty_voices) == 1:
@@ -545,10 +591,7 @@ def render_strudel(
     else:
         names = ",\n  ".join(
             f"voice{index}"
-            for index in range(
-                1,
-                len(nonempty_voices) + 1,
-            )
+            for index in range(1, len(nonempty_voices) + 1)
         )
 
         body = (
@@ -558,15 +601,13 @@ def render_strudel(
         )
 
     definitions = "\n\n".join(voice_definitions)
-
-    normalized_comment = (
-        "yes" if NORMALIZE_START else "no"
-    )
+    normalized_comment = "yes" if NORMALIZE_START else "no"
 
     return (
-        "// Generated by midi_to_strudel.py\n"
-        f"// Source: {source.name}\n"
-        f"// Internal MIDI track: {track}\n"
+        "// Generated by midi_to_strudel_numbered.py\n"
+        f"// Source MIDI file: {source.name}\n"
+        f"// Selected internal track: {track_index}\n"
+        f"// Internal track name: {selected_track_name or '(unnamed)'}\n"
         f"// BPM: {bpm:.2f}\n"
         f"// Time signature: {numerator}/{denominator}\n"
         f"// Quantization: 1/{QUANTIZATION}\n"
@@ -581,32 +622,48 @@ def render_strudel(
 
 
 # ---------------------------------------------------------------------------
-# Main program
+# File processing
 # ---------------------------------------------------------------------------
 
-def main() -> None:
-    midi_path = find_midi_file()
+def process_midi(
+    midi_path: Path,
+    output_dir: Path,
+    output_index: int,
+) -> Path:
+    print(f"Checking: {midi_path.name}")
+    print(f"  Full path: {midi_path!r}")
+    print(f"  Exists: {midi_path.exists()}")
+    print(f"  Is file: {midi_path.is_file()}")
+
+    if not midi_path.exists():
+        raise ValueError(
+            "The MIDI path does not exist according to Python. "
+            "This may be caused by OneDrive placeholders or synchronization."
+        )
 
     try:
-        mid = mido.MidiFile(midi_path)
-    except (OSError, EOFError, ValueError) as exc:
-        raise SystemExit(
-            f"No se pudo leer el MIDI:\n{exc}"
+        mid = mido.MidiFile(str(midi_path))
+    except FileNotFoundError as exc:
+        raise ValueError(
+            "Windows or OneDrive reported that the MIDI file does not exist "
+            f"even though it was discovered in the folder: {midi_path!r}"
         ) from exc
+    except (OSError, EOFError, ValueError) as exc:
+        raise ValueError(f"The MIDI file could not be read: {exc}") from exc
 
     track_index = choose_track(mid)
+    selected_track = mid.tracks[track_index]
+    selected_track_name = track_name(selected_track)
+
     bpm = first_bpm(mid)
     numerator, denominator = first_time_signature(mid)
 
     raw_notes = extract_notes(mid, track_index)
-
-    notes = quantize(raw_notes)
-    notes = normalize_start(notes)
+    notes = normalize_start(quantize(raw_notes))
 
     if not notes:
-        raise SystemExit(
-            f"La pista {track_index} "
-            "no contiene notas convertibles."
+        raise ValueError(
+            f"Internal track {track_index} contains no convertible notes."
         )
 
     voices = separate_voices(notes)
@@ -615,45 +672,87 @@ def main() -> None:
         voices=voices,
         bpm=bpm,
         source=midi_path,
-        track=track_index,
+        track_index=track_index,
+        selected_track_name=selected_track_name,
         numerator=numerator,
         denominator=denominator,
     )
 
-    output_dir = (
-        Path(__file__).resolve().parent
-        / "output"
-    )
-
-    output_dir.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
     output_path = (
         output_dir
-        / f"{midi_path.stem}.strudel"
+        / f"track_{output_index:02d}.strudel"
     )
 
-    output_path.write_text(
-        code,
+    output_path.write_text(code, encoding="utf-8")
+
+    print(f"Source: {midi_path.name!r}")
+    print(f"Output number: {output_index:02d}")
+    print(f"Selected internal track: {track_index}")
+    print(f"Track name: {selected_track_name or '(unnamed)'}")
+    print(f"Extracted notes: {len(raw_notes)}")
+    print(f"Generated voices: {len(voices)}")
+    print(f"Saved: {output_path}")
+    print()
+
+    return output_path
+
+
+# ---------------------------------------------------------------------------
+# Main program
+# ---------------------------------------------------------------------------
+
+def main() -> None:
+    midi_files = find_midi_files()
+
+    output_dir = Path(__file__).resolve().parent / "output"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    created_files: list[Path] = []
+    failed_files: list[tuple[Path, str]] = []
+
+    print(f"Found {len(midi_files)} MIDI file(s).")
+    print()
+
+    mapping_lines = [
+        "Output file\tSource MIDI file"
+    ]
+
+    for output_index, midi_path in enumerate(
+        midi_files,
+        start=1,
+    ):
+        try:
+            output_path = process_midi(
+                midi_path,
+                output_dir,
+                output_index,
+            )
+            created_files.append(output_path)
+            mapping_lines.append(
+                f"{output_path.name}\t{midi_path.name}"
+            )
+        except ValueError as exc:
+            failed_files.append((midi_path, str(exc)))
+            print(f"Skipped: {midi_path.name!r}")
+            print(f"Reason: {exc}")
+            print()
+
+    mapping_path = output_dir / "track_mapping.txt"
+    mapping_path.write_text(
+        "\n".join(mapping_lines) + "\n",
         encoding="utf-8",
     )
 
-    print(f"MIDI: {midi_path.name}")
+    print(f"Mapping saved: {mapping_path}")
+    print()
+
     print(
-        f"Pista interna elegida: "
-        f"{track_index}"
+        f"Finished. Created {len(created_files)} "
+        f"Strudel file(s)."
     )
-    print(f"Notas extraídas: {len(raw_notes)}")
-    print(f"Notas cuantizadas: {len(notes)}")
-    print(f"Voces generadas: {len(voices)}")
-    print(
-        f"Compás: "
-        f"{numerator}/{denominator}"
-    )
-    print(f"BPM: {bpm:.2f}")
-    print(f"Resultado: {output_path}")
+
+    if failed_files:
+        print(f"Skipped {len(failed_files)} MIDI file(s).")
 
 
 if __name__ == "__main__":
