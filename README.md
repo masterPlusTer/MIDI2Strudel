@@ -1,6 +1,5 @@
 
 
-https://github.com/user-attachments/assets/5f0df709-7345-4515-ac39-da6058fff849
 
 # MIDI2Strudel
 
