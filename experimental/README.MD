@@ -27,3 +27,6 @@ Builds upon the multi-track converter and attempts to preserve expressive MIDI i
 - pan
 
 These prototypes prioritize experimentation over exact MIDI reproduction.
+
+https://github.com/user-attachments/assets/d122915e-4c37-4c1e-a2bd-dd946bcbe2f4
+
