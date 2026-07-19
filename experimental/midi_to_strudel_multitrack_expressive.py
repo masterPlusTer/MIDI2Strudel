@@ -118,15 +118,15 @@ def find_midi_file() -> Path:
             path = Path.cwd() / path
         path = path.resolve()
         if not path.exists():
-            raise SystemExit(f"No se encontro el archivo: {path}")
+            raise SystemExit(f"File not found: {path}")
         if path.suffix.lower() not in {".mid", ".midi"}:
-            raise SystemExit(f"El archivo no parece ser MIDI: {path}")
+            raise SystemExit(f"The file does not appear to be a MIDI file: {path}")
         return path
 
     folder = Path(__file__).resolve().parent
     files = sorted([*folder.glob("*.mid"), *folder.glob("*.midi")])
     if not files:
-        raise SystemExit("No encontre ningun archivo .mid o .midi junto al script.")
+        raise SystemExit("No .mid or .midi file was found next to the script.")
     return files[0]
 
 
@@ -297,7 +297,7 @@ def extract_notes(mid: mido.MidiFile, track_index: int) -> list[NoteEvent]:
 
 def steps_per_beat() -> int:
     if QUANTIZATION % 4:
-        raise SystemExit("QUANTIZATION debe ser divisible por 4.")
+        raise SystemExit("QUANTIZATION must be divisible by 4.")
     return QUANTIZATION // 4
 
 
@@ -587,7 +587,7 @@ def render_combined(tracks: list[ConvertedTrack], bpm: float,
                     source_name: str) -> str:
     all_notes = [event for track in tracks for event in track.notes]
     if not all_notes:
-        raise SystemExit("No hay notas para combinar.")
+        raise SystemExit("There are no notes to combine.")
 
     global_start = min(event.start for event in all_notes)
     shifted_tracks = [
@@ -640,7 +640,7 @@ def main() -> None:
     try:
         mid = mido.MidiFile(midi_path)
     except (OSError, EOFError, ValueError) as exc:
-        raise SystemExit(f"No se pudo leer el MIDI:\n{exc}") from exc
+        raise SystemExit(f"Failed to read the MIDI file:\n{exc}") from exc
 
     tempo = tempo_at_first_note(mid)
     bpm = float(mido.tempo2bpm(tempo))
@@ -655,7 +655,7 @@ def main() -> None:
         tracks.append(prepare_track(index, get_track_name(midi_track, index), notes))
 
     if not tracks:
-        raise SystemExit("El MIDI no contiene pistas con notas convertibles.")
+        raise SystemExit("The MIDI file contains no tracks with convertible notes.")
 
     output_dir = Path(__file__).resolve().parent / "output" / safe_name(midi_path.stem)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -670,7 +670,7 @@ def main() -> None:
             render_individual(track, bpm, numerator, denominator, midi_path.name),
             encoding="utf-8",
         )
-        print(f"Pista {track.index}: {track.name} -> {path.name}")
+        print(f"Track {track.index}: {track.name} -> {path.name}")
 
     combined_path = output_dir / f"{safe_name(midi_path.stem)}_combined_expressive.strudel"
     combined_path.write_text(
@@ -680,14 +680,14 @@ def main() -> None:
 
     print()
     print(f"MIDI: {midi_path.name}")
-    print(f"Pistas convertidas: {len(tracks)}")
-    print(f"BPM usado: {bpm:.2f}")
-    print(f"Compas: {numerator}/{denominator}")
-    print(f"Cuantizacion: 1/{QUANTIZATION}")
+    print(f"Converted tracks: {len(tracks)}")
+    print(f"BPM used: {bpm:.2f}")
+    print(f"Time signature: {numerator}/{denominator}")
+    print(f"Quantization: 1/{QUANTIZATION}")
     if has_tempo_changes(mid):
-        print("Aviso: el MIDI contiene cambios de tempo; se usa el tempo de la primera nota.")
-    print(f"Carpeta de salida: {output_dir}")
-    print(f"Combinado: {combined_path.name}")
+        print("Warning: the MIDI file contains tempo changes; the tempo at the first note is used.")
+    print(f"Output folder: {output_dir}")
+    print(f"Combined: {combined_path.name}")
 
 
 if __name__ == "__main__":
