@@ -1,0 +1,14 @@
+Output file	Source MIDI file
+track_02.strudel	02_No. 10 Allegro.mid
+track_03.strudel	03_WINTER.mid
+track_04.strudel	04_The Four Seasons.mid
+track_05.strudel	05_by Vivaldi.mid
+track_06.strudel	06_arr _ Pollen.mid
+track_07.strudel	07_String Ensemble 1.mid
+track_08.strudel	08_String Ensemble 1.mid
+track_09.strudel	09_Synth Strings 1.mid
+track_10.strudel	10_Synth Strings 1.mid
+track_11.strudel	11_Synth Strings 1.mid
+track_12.strudel	12_Synth Strings 1.mid
+track_13.strudel	13_Synth Strings 1.mid
+track_14.strudel	14_Acoustic Bass.mid
