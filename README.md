@@ -3,6 +3,12 @@
 
 ⚠ **This project is experimental.** The goal is to generate readable and editable Strudel code rather than perfectly reproduce MIDI playback.
 
+
+
+https://github.com/user-attachments/assets/f656937c-4fb9-4da1-ba32-a1b591579db7
+
+
+
 > An experimental Python project for converting MIDI files into editable Strudel code.
 
 Unlike a traditional MIDI player, the goal of this project is **not** to reproduce MIDI as faithfully as possible.
