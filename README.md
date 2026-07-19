@@ -1,8 +1,4 @@
 
-
-https://github.com/user-attachments/assets/e7b7651d-636a-4c04-b477-207418e72198
-
-
 # MIDI2Strudel
 
 ⚠ **This project is experimental.** The goal is to generate readable and editable Strudel code rather than perfectly reproduce MIDI playback.
@@ -253,6 +249,12 @@ Generate Strudel code that preserves as much musical information as possible whi
 The repository also includes experimental converters exploring different approaches to MIDI translation.
 
 ### Multi-track converter
+
+
+
+https://github.com/user-attachments/assets/e7b7651d-636a-4c04-b477-207418e72198
+
+
 
 ```bash
 python midi_to_strudel_multitrack_experimental.py song.mid
