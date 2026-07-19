@@ -638,14 +638,14 @@ def process_midi(
     if not midi_path.exists():
         raise ValueError(
             "The MIDI path does not exist according to Python. "
-            "This may be caused by OneDrive placeholders or synchronization."
+            "----"
         )
 
     try:
         mid = mido.MidiFile(str(midi_path))
     except FileNotFoundError as exc:
         raise ValueError(
-            "Windows or OneDrive reported that the MIDI file does not exist "
+            "MIDI file does not exist "
             f"even though it was discovered in the folder: {midi_path!r}"
         ) from exc
     except (OSError, EOFError, ValueError) as exc:
