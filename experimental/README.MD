@@ -5,7 +5,6 @@ This folder contains research prototypes.
 ## Multi-track converter
 
 
-https://github.com/user-attachments/assets/e7b7651d-636a-4c04-b477-207418e72198
 
 
 ```bash
@@ -32,5 +31,4 @@ Builds upon the multi-track converter and attempts to preserve expressive MIDI i
 
 These prototypes prioritize experimentation over exact MIDI reproduction.
 
-https://github.com/user-attachments/assets/d122915e-4c37-4c1e-a2bd-dd946bcbe2f4
 
